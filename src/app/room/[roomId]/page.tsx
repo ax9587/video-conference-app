@@ -64,7 +64,7 @@ const RoomPage = () => {
         });
         const offer = await peer.getOffer();
         if (remoteSocketId && offer) {
-            socket.emit("user:call", { to: remoteSocketId, offer });
+            socket.emit("start-call", { to: remoteSocketId, offer });
             setIsCallInitiator(true);
         }
         setMyStream(stream);
@@ -81,17 +81,17 @@ const RoomPage = () => {
             console.log(`Incoming Call`, from, offer);
             const ans = await peer.getAnswer(offer);
             if (ans) {
-                socket.emit("call:accepted", { to: from, ans });
+                socket.emit("answer", { to: from, ans });
                 // Automatically send streams when accepting an incoming call
                 setIsCallInitiator(false);
                 // We need to wait for the peer connection to be established
-                setTimeout(() => {
-                    if (stream) {
-                        for (const track of stream.getTracks()) {
-                            peer.peer?.addTrack(track, stream);
-                        }
-                    }
-                }, 1000);
+                /*  setTimeout(() => {
+                     if (stream) {
+                         for (const track of stream.getTracks()) {
+                             peer.peer?.addTrack(track, stream);
+                         }
+                     }
+                 }, 1000); */
             }
         },
         [socket]
@@ -119,7 +119,7 @@ const RoomPage = () => {
     const handleNegoNeeded = useCallback(async () => {
         const offer = await peer.getOffer();
         if (remoteSocketId && offer) {
-            socket.emit("peer:nego:needed", { offer, to: remoteSocketId });
+            socket.emit("peer-nego-needed", { offer, to: remoteSocketId });
         }
     }, [remoteSocketId, socket]);
 
@@ -136,7 +136,7 @@ const RoomPage = () => {
         async ({ from, offer }: NegoData) => {
             const ans = await peer.getAnswer(offer);
             if (ans) {
-                socket.emit("peer:nego:done", { to: from, ans });
+                socket.emit("peer-nego-done", { to: from, ans });
             }
         },
         [socket]
@@ -156,18 +156,18 @@ const RoomPage = () => {
     }, []);
 
     useEffect(() => {
-        socket.on("user:joined", handleUserJoined);
-        socket.on("incomming:call", handleIncommingCall);
-        socket.on("call:accepted", handleCallAccepted);
-        socket.on("peer:nego:needed", handleNegoNeedIncomming);
-        socket.on("peer:nego:final", handleNegoNeedFinal);
+        socket.on("user-joined", handleUserJoined);
+        socket.on("offer", handleIncommingCall);
+        socket.on("answer", handleCallAccepted);
+        socket.on("peer-nego-needed", handleNegoNeedIncomming);
+        socket.on("peer-nego-final", handleNegoNeedFinal);
 
         return () => {
-            socket.off("user:joined", handleUserJoined);
-            socket.off("incomming:call", handleIncommingCall);
-            socket.off("call:accepted", handleCallAccepted);
-            socket.off("peer:nego:needed", handleNegoNeedIncomming);
-            socket.off("peer:nego:final", handleNegoNeedFinal);
+            socket.off("user-joined", handleUserJoined);
+            socket.off("offer", handleIncommingCall);
+            socket.off("answer", handleCallAccepted);
+            socket.off("peer-nego-needed", handleNegoNeedIncomming);
+            socket.off("peer-nego-final", handleNegoNeedFinal);
         };
     }, [
         socket,
@@ -201,7 +201,7 @@ const RoomPage = () => {
                         <Video className="w-6 h-6 text-blue-500" />
                         <h1 className="text-2xl font-bold">Video Chat Room</h1>
                     </div>
-                    <Badge variant={remoteSocketId ? "success" : "secondary"}>
+                    <Badge variant={remoteSocketId ? "default" : "secondary"}>
                         {remoteSocketId ? "Connected" : "Waiting for peer"}
                     </Badge>
                 </div>
@@ -294,6 +294,15 @@ const RoomPage = () => {
                                     </Button>
                                 )}
                             </>
+                        )}
+                        {!isCallInitiator && remoteSocketId && myStream && (
+                            <Button
+                                onClick={sendStreams}
+                                className="bg-green-500 hover:bg-green-600"
+                            >
+                                <Phone className="mr-2 h-4 w-4" />
+                                Answer Call
+                            </Button>
                         )}
                         {remoteSocketId && !myStream && (
                             <Button

@@ -25,7 +25,7 @@ const LobbyScreen = () => {
     const handleSubmitForm = useCallback(
         (e: React.FormEvent<HTMLFormElement>) => {
             e.preventDefault();
-            socket.emit("room:join", { email, room });
+            socket.emit("join-room", { email, room });
         },
         [email, room, socket]
     );
@@ -39,9 +39,9 @@ const LobbyScreen = () => {
     );
 
     useEffect(() => {
-        socket.on("room:join", handleJoinRoom);
+        socket.on("join-room", handleJoinRoom);
         return () => {
-            socket.off("room:join", handleJoinRoom);
+            socket.off("join-room", handleJoinRoom);
         };
     }, [socket, handleJoinRoom]);
 
